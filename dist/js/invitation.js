@@ -9,9 +9,6 @@ const CONFIG = Object.freeze({
   }
 });
 document.documentElement.classList.add('js');
-const envelope = document.querySelector('#envelope-intro');
-const invitationContent = document.querySelector('#invitation-content');
-if (envelope && invitationContent) invitationContent.inert = true;
 const scenes = [...document.querySelectorAll('.scene')];
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const mobileLayout = matchMedia('(max-width: 700px)');
@@ -79,12 +76,9 @@ if (scenes.length) {
     glideTo(scenes[index]);
   }
   const hero = document.querySelector('[data-image="hero"]');
-  window.addEventListener('invitation-opened', () => {
-    stopped = reduceMotion.matches || !mobileLayout.matches;
-    (hero ? hero.decode().catch(() => {}) : Promise.resolve()).then(() => {
-      if (!stopped && scrollY < 10) timer = setTimeout(() => advance(1), 8500);
-    });
-  }, { once: true });
+  (hero ? hero.decode().catch(() => {}) : Promise.resolve()).then(() => {
+    if (!stopped && scrollY < 10) timer = setTimeout(() => advance(1), 8500);
+  });
   document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', event => {
     const target = document.getElementById(a.hash.slice(1));
     if (!target) return;
@@ -163,114 +157,4 @@ if (journey) {
     window.scrollTo({ top: target, behavior: reduceMotion.matches ? 'instant' : 'smooth' });
   }));
   updateJourney();
-}
-
-// One pointer controls the card directly; only release starts a settling animation.
-const dragEnvelope = document.querySelector('#reveal-invitation');
-if (envelope && invitationContent && dragEnvelope) {
-  let progress = 0, pointerId = null, startY = 0, startProgress = 0;
-  let dragDistance = 180, revealed = false, settling = false, settleFrame;
-  const card = envelope.querySelector('.secret-card');
-  const clamp = value => Math.max(0, Math.min(1, value));
-  function render(value) {
-    progress = clamp(value);
-    dragEnvelope.style.setProperty('--pull', progress);
-    dragEnvelope.style.setProperty('--flap', `${-175 * clamp(progress / .55)}deg`);
-    dragEnvelope.style.setProperty('--flap-layer', progress > .28 ? 1 : 4);
-    dragEnvelope.style.setProperty('--seal-opacity', 1 - clamp(progress / .2));
-    dragEnvelope.style.setProperty('--copy-opacity', clamp((progress - .25) / .3));
-    dragEnvelope.style.setProperty('--date-opacity', clamp((progress - .6) / .3));
-  }
-  function settle(target) {
-    settling = true;
-    const from = progress, start = performance.now();
-    const duration = reduceMotion.matches ? 0 : target ? 700 : 480;
-    function frame(now) {
-      const t = duration ? clamp((now - start) / duration) : 1;
-      render(from + (target - from) * (1 - Math.pow(1 - t, 3)));
-      if (t < 1) { settleFrame = requestAnimationFrame(frame); return; }
-      settling = false;
-      if (target) {
-        revealed = true;
-        envelope.classList.add('is-revealed');
-        dragEnvelope.setAttribute('aria-expanded', 'true');
-        card.setAttribute('aria-hidden', 'false');
-        document.querySelector('#reveal-status').textContent = 'We are getting married on 22 November 2026.';
-        openInvitation();
-      } else envelope.classList.remove('has-dragged');
-    }
-    settleFrame = requestAnimationFrame(frame);
-  }
-  dragEnvelope.addEventListener('pointerdown', event => {
-    if (revealed || settling || pointerId !== null || !event.isPrimary || event.button !== 0) return;
-    pointerId = event.pointerId;
-    startY = event.clientY;
-    startProgress = progress;
-    dragDistance = Math.min(230, dragEnvelope.clientWidth * .58);
-    dragEnvelope.setPointerCapture(pointerId);
-    envelope.classList.add('has-dragged');
-    stopAuto();
-  });
-  dragEnvelope.addEventListener('pointermove', event => {
-    if (event.pointerId !== pointerId) return;
-    render(startProgress + (startY - event.clientY) / dragDistance);
-  });
-  function endDrag(event) {
-    if (event.pointerId !== pointerId) return;
-    const id = pointerId;
-    pointerId = null;
-    if (dragEnvelope.hasPointerCapture(id)) dragEnvelope.releasePointerCapture(id);
-    settle(event.type === 'pointerup' && progress >= .65 ? 1 : 0);
-  }
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => dragEnvelope.addEventListener(type, endDrag));
-  dragEnvelope.addEventListener('keydown', event => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
-    if (revealed || settling || pointerId !== null) return;
-    envelope.classList.add('has-dragged');
-    settle(1);
-  });
-  // Keep keyboard focus on the envelope until the automatic handoff completes.
-  envelope.addEventListener('keydown', event => {
-    if (event.key !== 'Tab') return;
-    event.preventDefault();
-    dragEnvelope.focus({ preventScroll: true });
-  });
-  async function openInvitation() {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    document.body.classList.add('invitation-revealing');
-    envelope.classList.add('is-leaving');
-    await new Promise(resolve => setTimeout(resolve, reduceMotion.matches ? 0 : 600));
-    envelope.hidden = true;
-    invitationContent.inert = false;
-    document.body.classList.remove('envelope-closed', 'invitation-revealing');
-    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
-    document.querySelector('#save-date').classList.add('active');
-    const title = document.querySelector('#couple-title');
-    title.setAttribute('tabindex', '-1');
-    title.focus({ preventScroll: true });
-    window.dispatchEvent(new Event('invitation-opened'));
-  }
-  render(0);
-}
-
-// Explicit offset keeps the wedding instant the same for guests in every timezone.
-const countdown = document.querySelector('.wedding-countdown');
-if (countdown) {
-  const weddingTime = Date.parse('2026-11-22T07:45:00+05:30');
-  const units = ['days', 'hours', 'minutes', 'seconds'].map(unit =>
-    countdown.querySelector(`[data-countdown="${unit}"]`));
-  let countdownInterval;
-  function updateCountdown() {
-    const remaining = Math.max(0, Math.ceil((weddingTime - Date.now()) / 1000));
-    const values = [Math.floor(remaining / 86400), Math.floor(remaining / 3600) % 24,
-      Math.floor(remaining / 60) % 60, remaining % 60];
-    units.forEach((element, index) => { element.textContent = String(values[index]).padStart(2, '0'); });
-    if (remaining === 0) {
-      countdown.querySelector('h2').textContent = 'Our forever has begun';
-      clearInterval(countdownInterval);
-    }
-  }
-  countdownInterval = setInterval(updateCountdown, 1000);
-  updateCountdown();
 }
