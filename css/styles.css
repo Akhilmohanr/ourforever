@@ -161,3 +161,16 @@ body.memory-viewer-open{overflow:hidden}
 .memory-print img{transition:opacity .3s ease}
 @keyframes memory-shimmer{to{transform:translateX(100%)}}
 @media(prefers-reduced-motion:reduce){.memory-skeleton:after,.memory-print.is-loading:after{animation:none;transform:none;opacity:.3}}
+
+#memories-open-album{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:2px;padding:12px 28px;font:18px WeddingSerif}
+#memories-open-album:hover{background:#fffaf2}
+.memories-album-dialog{width:min(1100px,94vw);max-width:none;max-height:90dvh;padding:0 32px 36px;border:1px solid #ded5c7;border-radius:8px;background:var(--paper);color:var(--ink);overscroll-behavior:contain}
+.memories-album-dialog::backdrop{background:#292d27a6;backdrop-filter:blur(4px)}
+.album-header{position:sticky;top:0;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:25px 0 20px;background:var(--paper);border-bottom:1px solid #ded5c7;margin-bottom:28px}
+.album-header .script{font-size:46px;color:var(--sage)}
+.album-header h2{font-size:23px;font-weight:400;margin:4px 0}
+.album-header p{font-size:15px;color:var(--muted);margin:6px 0 0}
+.album-close{flex-shrink:0;width:44px;height:44px;border:1px solid var(--line);border-radius:50%;background:transparent;font-size:27px;color:var(--ink)}
+.album-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px}
+.album-grid .memory-print{transform:none}
+@media(max-width:700px){.memories-album-dialog{width:96vw;padding:0 16px 24px}.album-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.album-header .script{font-size:37px}.album-header h2{font-size:20px}.album-header{padding-top:18px}.album-grid .memory-print span{font-size:24px}}

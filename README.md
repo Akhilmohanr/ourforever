@@ -89,7 +89,7 @@ following pagination and excluding deleted files and non-images. A shimmer is
 shown while the list and image files load. Empty folders and failed requests
 show a message with a link to the album. Existing card styling and viewer remain.
 No Python backend, generated photo list, iframe, or sync command is required.
-The legacy serve/sync scripts are not used by this gallery.
+The old server, sync script, and generated photo inventory have been removed.
 
 Test on your permitted GitHub Pages origin. For local HTTP previews, explicitly
 allow that localhost origin in your key restrictions; a website-restricted key

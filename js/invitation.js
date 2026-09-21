@@ -327,7 +327,14 @@ async function loadMemories() {
   const status = document.querySelector('#memories-status');
   const viewer = document.querySelector('.memory-viewer');
   if (!gallery || !viewer) return;
-  document.querySelector('#memories-album-link').href = CONFIG.MEMORIES.DRIVE_FOLDER_URL;
+  const album = document.querySelector('.memories-album-dialog');
+  const albumGrid = document.querySelector('#memories-all-photos');
+  const openAlbum = document.querySelector('#memories-open-album');
+  const updateScrollLock = () => document.body.classList.toggle('memory-viewer-open', viewer.open || album.open);
+  openAlbum.addEventListener('click', () => { stopAuto(); album.showModal(); updateScrollLock(); });
+  album.querySelector('.album-close').addEventListener('click', () => album.close());
+  album.addEventListener('click', event => { if (event.target === album) album.close(); });
+  album.addEventListener('close', updateScrollLock);
   // Show stationery-shaped placeholders immediately while the folder is fetched.
   gallery.replaceChildren(...Array.from({ length: 3 }, () => {
     const placeholder = document.createElement('div');
@@ -346,7 +353,7 @@ async function loadMemories() {
       viewer.querySelector('figcaption').textContent = `${photos[selected].caption} · ${selected + 1} / ${photos.length}`;
     }
     gallery.replaceChildren();
-    photos.forEach((photo, index) => {
+    function createPhoto(photo, index, target) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'memory-print is-loading';
@@ -375,8 +382,14 @@ async function loadMemories() {
       img.src = photo.src;
       button.append(img, caption);
       button.addEventListener('click', () => { show(index); stopAuto(); viewer.showModal(); document.body.classList.add('memory-viewer-open'); });
-      gallery.append(button);
+      target.append(button);
+    }
+    photos.forEach((photo, index) => {
+      if (index < 6) createPhoto(photo, index, gallery);
+      createPhoto(photo, index, albumGrid);
     });
+    document.querySelector('#album-count').textContent = `${photos.length} ${photos.length === 1 ? 'memory' : 'memories'} to look back on`;
+    openAlbum.hidden = photos.length === 0;
     viewer.querySelector('.memory-close').addEventListener('click', () => viewer.close());
     viewer.querySelector('.memory-previous').addEventListener('click', () => show(selected - 1));
     viewer.querySelector('.memory-next').addEventListener('click', () => show(selected + 1));
@@ -384,13 +397,13 @@ async function loadMemories() {
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); show(selected + (event.key === 'ArrowRight' ? 1 : -1)); }
     });
     viewer.addEventListener('click', event => { if (event.target === viewer) viewer.close(); });
-    viewer.addEventListener('close', () => document.body.classList.remove('memory-viewer-open'));
+    viewer.addEventListener('close', updateScrollLock);
     status.hidden = photos.length > 0;
     status.textContent = photos.length ? '' : 'Our album is waiting for its first memories.';
   } catch (error) {
     gallery.replaceChildren();
     status.hidden = false;
-    status.textContent = 'Our photos couldn’t load just now. You can still open the album below.';
+    status.textContent = 'Our photos couldn’t load just now. Please refresh the page to try again.';
   } finally { gallery.setAttribute('aria-busy', 'false'); }
 }
 loadMemories();
