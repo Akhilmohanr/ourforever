@@ -337,7 +337,7 @@ async function fetchDriveMemories() {
       q: `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`,
       fields: 'nextPageToken,files(id,name,mimeType,resourceKey)',
       pageSize: '100',
-      orderBy: 'createdTime,name'
+      orderBy: 'name'
     });
     if (pageToken) params.set('pageToken', pageToken);
     const resourceKey = folderUrl.searchParams.get('resourcekey');
