@@ -317,7 +317,7 @@ async function fetchDriveMemories() {
   return [...new Map(files.map(file => [file.id, file])).values()].map((file, index) => {
     const params = new URLSearchParams({ id: file.id, sz: 'w1600' });
     if (file.resourceKey) params.set('resourcekey', file.resourceKey);
-    return { src: `https://drive.google.com/thumbnail?${params}`, alt: `Our memories, photo ${index + 1}`, caption: `Memory ${index + 1}` };
+    return { src: `https://drive.google.com/thumbnail?${params}`, alt: `Our memories, photo ${index + 1}`};
   });
 }
 
