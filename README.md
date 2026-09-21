@@ -66,3 +66,33 @@ Before using a different host, change `og:image` in `index.html` to the absolute
 6. Share the public invitation URL in the video's WhatsApp caption. Video buttons are not tappable.
 
 No MP4 is included. The original `assets/invitation.jpg` is retained in the source assets, preserving the supplied QR code and all original artwork.
+
+### Memories from Google Drive — GitHub Pages
+
+In `js/invitation.js`, paste your Google Drive browser API key into:
+
+```js
+MEMORIES: {
+  API_KEY: '', // paste your restricted key here
+  DRIVE_FOLDER_URL: 'https://drive.google.com/drive/folders/1zW14fybVorXE-Bq8KNrZCPvHCgvftYWb'
+}
+```
+
+Enable Google Drive API for its Google Cloud project. Restrict this key to
+Google Drive API and the website referrer `https://akhilmohanr.github.io/*`.
+The key is visible in browser code, so use a dedicated restricted browser key,
+not OAuth secrets or service-account credentials. Keep the folder and photos
+shared as Anyone with the link / Viewer.
+
+The gallery fetches the current folder through Drive API v3 on every page load,
+following pagination and excluding deleted files and non-images. A shimmer is
+shown while the list and image files load. Empty folders and failed requests
+show a message with a link to the album. Existing card styling and viewer remain.
+No Python backend, generated photo list, iframe, or sync command is required.
+The legacy serve/sync scripts are not used by this gallery.
+
+Test on your permitted GitHub Pages origin. For local HTTP previews, explicitly
+allow that localhost origin in your key restrictions; a website-restricted key
+normally will not work from a directly opened file:// page. A blank key leaves
+the gallery unavailable until configured. Google caching can delay newly added
+photos. Only images directly within the folder are included.

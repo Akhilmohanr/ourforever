@@ -2,6 +2,12 @@
 const CONFIG = Object.freeze({
   // Add your own photo paths here; null preserves the supplied watercolor artwork.
   IMAGES: { hero: null, venue: null, closing: null },
+  // Direct browser access to the public Drive folder; works on GitHub Pages.
+  MEMORIES: {
+    // Paste your website-restricted Google Drive API key between these quotes.
+    API_KEY: 'AIzaSyCgpJwNoIdqQ6ivI19PRVKwQsA3PV6xnXQ',
+    DRIVE_FOLDER_URL: 'https://drive.google.com/drive/folders/14RPlhVn7WI57b8FyhFIek-qcvVm_2_Oa?usp=sharing'
+  },
   MAPS: {
     temple: 'https://www.google.com/maps/search/?api=1&query=Attukal+Bhagavathy+Temple+Thiruvananthapuram',
     auditorium: 'https://www.google.com/maps/search/?api=1&query=Viswaroopam+Auditorium+Attukal+Thiruvananthapuram',
@@ -274,3 +280,117 @@ if (countdown) {
   countdownInterval = setInterval(updateCountdown, 1000);
   updateCountdown();
 }
+
+// Query every page of the public folder directly from Google's API.
+async function fetchDriveMemories() {
+  const key = CONFIG.MEMORIES.API_KEY.trim();
+  if (!key) throw new Error('Drive API key is not configured');
+  const folderUrl = new URL(CONFIG.MEMORIES.DRIVE_FOLDER_URL);
+  const folderId = folderUrl.pathname.match(/\/folders\/([\w-]+)/)?.[1];
+  if (folderUrl.hostname !== 'drive.google.com' || !folderId) throw new Error('Invalid Drive folder');
+  const signal = AbortSignal.timeout(35000);
+  const files = [];
+  const seenPages = new Set();
+  let pageToken = '';
+  do {
+    const params = new URLSearchParams({
+      key,
+      q: `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`,
+      fields: 'nextPageToken,files(id,name,mimeType,resourceKey)',
+      pageSize: '100',
+      orderBy: 'createdTime,name'
+    });
+    if (pageToken) params.set('pageToken', pageToken);
+    const resourceKey = folderUrl.searchParams.get('resourcekey');
+    const headers = resourceKey ? { 'X-Goog-Drive-Resource-Keys': `${folderId}/${resourceKey}` } : {};
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+      cache: 'no-store', credentials: 'omit', signal, headers
+    });
+    if (!response.ok) throw new Error(`Drive request failed (${response.status})`);
+    const data = await response.json();
+    if (!Array.isArray(data.files)) throw new Error('Invalid Drive response');
+    files.push(...data.files.filter(file => /^[\w-]+$/.test(file.id) && file.mimeType?.startsWith('image/')));
+    pageToken = data.nextPageToken || '';
+    if (pageToken && seenPages.has(pageToken)) throw new Error('Repeated Drive page token');
+    seenPages.add(pageToken);
+  } while (pageToken);
+  return [...new Map(files.map(file => [file.id, file])).values()].map((file, index) => {
+    const params = new URLSearchParams({ id: file.id, sz: 'w1600' });
+    if (file.resourceKey) params.set('resourcekey', file.resourceKey);
+    return { src: `https://drive.google.com/thumbnail?${params}`, alt: `Our memories, photo ${index + 1}`, caption: `Memory ${index + 1}` };
+  });
+}
+
+// Preserve the photo-card gallery, shimmer, and full-screen viewer.
+async function loadMemories() {
+  const gallery = document.querySelector('#memories-gallery');
+  const status = document.querySelector('#memories-status');
+  const viewer = document.querySelector('.memory-viewer');
+  if (!gallery || !viewer) return;
+  document.querySelector('#memories-album-link').href = CONFIG.MEMORIES.DRIVE_FOLDER_URL;
+  // Show stationery-shaped placeholders immediately while the folder is fetched.
+  gallery.replaceChildren(...Array.from({ length: 3 }, () => {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'memory-print memory-skeleton';
+    placeholder.setAttribute('aria-hidden', 'true');
+    placeholder.innerHTML = '<div class="memory-image-placeholder"></div><span class="memory-caption-placeholder"></span>';
+    return placeholder;
+  }));
+  try {
+    const photos = await fetchDriveMemories();
+    let selected = 0;
+    function show(index) {
+      selected = (index + photos.length) % photos.length;
+      viewer.querySelector('img').src = photos[selected].src;
+      viewer.querySelector('img').alt = photos[selected].alt;
+      viewer.querySelector('figcaption').textContent = `${photos[selected].caption} · ${selected + 1} / ${photos.length}`;
+    }
+    gallery.replaceChildren();
+    photos.forEach((photo, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'memory-print is-loading';
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      button.setAttribute('aria-label', `View photo: ${photo.caption}`);
+      const img = document.createElement('img');
+      img.alt = photo.alt;
+      img.loading = 'eager';
+      img.referrerPolicy = 'no-referrer';
+      const caption = document.createElement('span');
+      caption.textContent = photo.caption;
+      let finished = false;
+      const finish = success => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(imageTimeout);
+        button.classList.remove('is-loading');
+        button.setAttribute('aria-busy', 'false');
+        button.disabled = !success;
+        if (!success) { img.hidden = true; caption.textContent = 'Photo temporarily unavailable'; }
+      };
+      const imageTimeout = setTimeout(() => finish(false), 30000);
+      img.addEventListener('load', () => finish(true), { once: true });
+      img.addEventListener('error', () => finish(false), { once: true });
+      img.src = photo.src;
+      button.append(img, caption);
+      button.addEventListener('click', () => { show(index); stopAuto(); viewer.showModal(); document.body.classList.add('memory-viewer-open'); });
+      gallery.append(button);
+    });
+    viewer.querySelector('.memory-close').addEventListener('click', () => viewer.close());
+    viewer.querySelector('.memory-previous').addEventListener('click', () => show(selected - 1));
+    viewer.querySelector('.memory-next').addEventListener('click', () => show(selected + 1));
+    viewer.addEventListener('keydown', event => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); show(selected + (event.key === 'ArrowRight' ? 1 : -1)); }
+    });
+    viewer.addEventListener('click', event => { if (event.target === viewer) viewer.close(); });
+    viewer.addEventListener('close', () => document.body.classList.remove('memory-viewer-open'));
+    status.hidden = photos.length > 0;
+    status.textContent = photos.length ? '' : 'Our album is waiting for its first memories.';
+  } catch (error) {
+    gallery.replaceChildren();
+    status.hidden = false;
+    status.textContent = 'Our photos couldn’t load just now. You can still open the album below.';
+  } finally { gallery.setAttribute('aria-busy', 'false'); }
+}
+loadMemories();

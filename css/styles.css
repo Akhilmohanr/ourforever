@@ -112,3 +112,52 @@ html:not(.js) .scene.story-journey{height:auto}html:not(.js) .story-stage{positi
   .cover-photo,.closing-photo{height:clamp(440px,140vw,780px);min-height:0;flex-shrink:0}
   .cover-photo img.reference-art,.closing-photo img.reference-art{height:100%;object-fit:cover;object-position:center top}
 }
+/* A keepsake album, followed by the closing invitation. */
+.memories-section{min-height:auto;padding-block:90px 100px}
+.memories-intro{text-align:center;color:var(--sage);font-size:22px;max-width:520px;margin:24px auto 44px}
+.memories-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;max-width:1080px;margin:auto;position:relative;z-index:2}
+.memory-print{padding:10px 10px 16px;background:#fffaf2;border:1px solid #e2d9ca;box-shadow:0 8px 20px #534a3510;color:var(--ink);transform:rotate(-2deg);transition:transform .3s var(--ease),box-shadow .3s}
+.memory-print:nth-child(2n){transform:rotate(2deg)}
+.memory-print img{width:100%;aspect-ratio:4/5;object-fit:contain;background:var(--paper);display:block}
+.memory-print span{display:block;font:30px/1.1 WeddingScript;margin:17px 3px 0}
+.memory-print:hover{transform:translateY(-5px) rotate(0);box-shadow:0 12px 25px #534a3520}
+.memories-preview{text-align:center;max-width:460px;margin:38px auto 0;color:#77715f;font-size:17px}
+.memory-viewer{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:55px 65px;background:#f2ece3fa;border:0;color:var(--ink)}
+.memory-viewer[open]{display:flex;align-items:center;justify-content:center;gap:18px}
+.memory-viewer::backdrop{background:#262a24c9}
+.memory-viewer figure{margin:0;min-width:0;max-width:1000px;text-align:center}
+.memory-viewer img{display:block;width:100%;height:75dvh;object-fit:contain}
+.memory-viewer figcaption{font-size:18px;margin-top:18px}
+.memory-viewer button{background:transparent;border:1px solid #b7b19e;border-radius:50%;color:var(--ink);width:44px;height:44px;flex-shrink:0;font-size:24px}
+.memory-close{position:absolute;right:22px;top:18px}
+body.memory-viewer-open{overflow:hidden}
+@media(max-width:700px){.memories-section{padding:65px 24px 70px}.memories-intro{font-size:19px;margin-bottom:30px}.memories-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px}.memory-print{padding:6px 6px 12px}.memory-print span{font-size:24px;margin-top:12px}.memories-preview{font-size:16px}.memory-viewer{padding:65px 12px 90px}.memory-viewer img{height:68dvh}.memory-viewer .memory-previous,.memory-viewer .memory-next{position:absolute;bottom:22px}.memory-previous{left:calc(50% - 58px)}.memory-next{right:calc(50% - 58px)}}
+@media(prefers-reduced-motion:reduce){.memory-print{transition:none}}
+/* Stack chapters in one intrinsic grid row: the longest paragraph reserves space. */
+.story-stage{grid-template-rows:auto minmax(150px,1fr) auto auto;min-height:min-content;row-gap:12px}
+.journey-copy{display:grid;height:auto;min-width:0}
+.journey-copy article{position:relative;inset:auto;grid-area:1 / 1;align-self:start;min-width:0}
+.journey-copy p{max-width:650px;margin-inline:auto;overflow-wrap:break-word}
+.journey-copy p br{display:none}
+.journey-controls{padding-top:4px}
+/* Fit the illustrations to the space left by the heading, text, and controls. */
+.journey-art{container-type:size}
+.journey-art .avatar{--avatar-size:min(44vw,440px,49svh,calc(100cqh - 44px))}
+.journey-ground{top:auto;bottom:22px}
+@media(max-width:700px){.journey-art .avatar{--avatar-size:min(57vw,40svh,calc(100cqh - 40px))}}
+@media(max-height:650px){.story-stage{row-gap:8px}.journey-art .avatar{--avatar-size:min(40vw,36svh,calc(100cqh - 36px))}}
+
+.memories-album-link{text-align:center;margin:25px 0 0;font-size:17px}
+.memories-gallery:empty{display:none}
+
+/* Shimmer covers both the folder request and each image download. */
+.memory-skeleton,.memory-print.is-loading{position:relative;overflow:hidden;pointer-events:none}
+.memory-image-placeholder{width:100%;aspect-ratio:4/5;background:#e5ddd0}
+.memory-caption-placeholder{width:65%;height:20px;background:#e5ddd0;border-radius:3px;margin:18px auto 0!important}
+.memory-skeleton:after,.memory-print.is-loading:after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 25%,#fffaf299 50%,transparent 75%);transform:translateX(-100%);animation:memory-shimmer 1.6s ease-in-out infinite;pointer-events:none}
+.memory-print.is-loading img{opacity:0}
+.memory-print.is-loading{background:#eee6d9}
+.memory-print.is-loading span{visibility:hidden}
+.memory-print img{transition:opacity .3s ease}
+@keyframes memory-shimmer{to{transform:translateX(100%)}}
+@media(prefers-reduced-motion:reduce){.memory-skeleton:after,.memory-print.is-loading:after{animation:none;transform:none;opacity:.3}}
