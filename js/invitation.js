@@ -336,7 +336,7 @@ async function loadMemories() {
   album.addEventListener('click', event => { if (event.target === album) album.close(); });
   album.addEventListener('close', updateScrollLock);
   // Show stationery-shaped placeholders immediately while the folder is fetched.
-  gallery.replaceChildren(...Array.from({ length: 3 }, () => {
+  gallery.replaceChildren(...Array.from({ length: 5 }, () => {
     const placeholder = document.createElement('div');
     placeholder.className = 'memory-print memory-skeleton';
     placeholder.setAttribute('aria-hidden', 'true');
@@ -385,9 +385,35 @@ async function loadMemories() {
       target.append(button);
     }
     photos.forEach((photo, index) => {
-      if (index < 6) createPhoto(photo, index, gallery);
+      if (index < 5) createPhoto(photo, index, gallery);
       createPhoto(photo, index, albumGrid);
     });
+    const carouselControls = document.querySelector('.memories-carousel-controls');
+    const previous = document.querySelector('#memories-previous');
+    const next = document.querySelector('#memories-next');
+    function updateCarousel() {
+      const max = gallery.scrollWidth - gallery.clientWidth;
+      carouselControls.hidden = photos.length < 2 || max < 2;
+      previous.disabled = gallery.scrollLeft <= 2;
+      next.disabled = gallery.scrollLeft >= max - 2;
+    }
+    function moveCarousel(direction) {
+      const card = gallery.querySelector('.memory-print');
+      if (!card) return;
+      const gap = parseFloat(getComputedStyle(gallery).columnGap) || 0;
+      gallery.scrollBy({ left: direction * (card.getBoundingClientRect().width + gap), behavior: reduceMotion.matches ? 'instant' : 'smooth' });
+    }
+    previous.addEventListener('click', () => moveCarousel(-1));
+    next.addEventListener('click', () => moveCarousel(1));
+    gallery.addEventListener('scroll', updateCarousel, { passive: true });
+    gallery.addEventListener('keydown', event => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        moveCarousel(event.key === 'ArrowRight' ? 1 : -1);
+      }
+    });
+    new ResizeObserver(updateCarousel).observe(gallery);
+    updateCarousel();
     document.querySelector('#album-count').textContent = `${photos.length} ${photos.length === 1 ? 'memory' : 'memories'} to look back on`;
     openAlbum.hidden = photos.length === 0;
     viewer.querySelector('.memory-close').addEventListener('click', () => viewer.close());

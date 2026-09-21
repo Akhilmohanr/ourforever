@@ -174,3 +174,15 @@ body.memory-viewer-open{overflow:hidden}
 .album-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px}
 .album-grid .memory-print{transform:none}
 @media(max-width:700px){.memories-album-dialog{width:96vw;padding:0 16px 24px}.album-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.album-header .script{font-size:37px}.album-header h2{font-size:20px}.album-header{padding-top:18px}.album-grid .memory-print span{font-size:24px}}
+
+/* Five-photo preview carousel; the popup keeps the complete album grid. */
+#memories-gallery{display:flex;gap:24px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:12px;padding:12px 12px 26px;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+#memories-gallery:empty{display:none}
+#memories-gallery>.memory-print{flex:0 0 calc((100% - 48px)/3);min-width:0;scroll-snap-align:start;transform:none}
+#memories-gallery>.memory-print:hover{transform:translateY(-4px)}
+.memories-carousel-controls{display:flex;align-items:center;justify-content:center;gap:24px;margin-top:18px}
+.memories-carousel-controls[hidden]{display:none}
+.memories-carousel-controls button{width:44px;height:44px;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--ink);font-size:24px}
+.memories-carousel-controls button:disabled{opacity:.3;cursor:default}
+.memories-carousel-controls span{font-size:13px;letter-spacing:1px;color:var(--sage)}
+@media(max-width:700px){#memories-gallery{gap:18px}#memories-gallery>.memory-print{flex-basis:78%}}
