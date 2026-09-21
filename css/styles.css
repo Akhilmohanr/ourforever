@@ -196,3 +196,40 @@ body.memory-viewer-open{overflow:hidden}
 #memories-previous{left:0}
 #memories-next{right:0}
 @media(max-width:700px){.memories-carousel{padding-inline:32px}#memories-previous{left:-10px}#memories-next{right:-10px}}
+
+/* Pointer/touch interactions retain accessible focus without a keyboard-style ring. */
+#memories-gallery:focus-visible{outline:2px solid var(--sage);outline-offset:4px}
+#memories-gallery:focus:not(:focus-visible),.memory-print:focus:not(:focus-visible),.memory-viewer button:focus:not(:focus-visible),.memories-album-dialog button:focus:not(:focus-visible){outline:none}
+.memories-pointer-mode #memories-gallery:focus,
+.memories-pointer-mode .memory-print:focus,
+.memories-pointer-mode .memory-viewer:focus,
+.memories-pointer-mode .memory-viewer button:focus,
+.memories-pointer-mode .memories-album-dialog:focus,
+.memories-pointer-mode .memories-album-dialog button:focus,
+.memories-pointer-mode #memories-open-album:focus{outline:none}
+
+/* Slightly scattered keepsake prints, with room for their tilted corners. */
+.memory-print:nth-child(5n + 1){--print-tilt:-2.2deg}
+.memory-print:nth-child(5n + 2){--print-tilt:1.4deg}
+.memory-print:nth-child(5n + 3){--print-tilt:-1deg}
+.memory-print:nth-child(5n + 4){--print-tilt:2.5deg}
+.memory-print:nth-child(5n + 5){--print-tilt:-1.7deg}
+#memories-gallery{padding-top:24px;padding-bottom:32px}
+#memories-gallery>.memory-print,.album-grid .memory-print{transform:rotate(var(--print-tilt, -1deg));transform-origin:center;transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.album-grid{padding:10px 6px 14px}
+@media(hover:hover) and (pointer:fine){
+ #memories-gallery>.memory-print:not(:disabled):hover,.album-grid .memory-print:not(:disabled):hover{transform:translateY(-5px) rotate(0deg);box-shadow:0 14px 28px #534a3525;position:relative;z-index:2}
+}
+@media(hover:none){#memories-gallery>.memory-print:hover,.album-grid .memory-print:hover{transform:rotate(var(--print-tilt, -1deg))}}
+@media(prefers-reduced-motion:reduce){#memories-gallery>.memory-print,.album-grid .memory-print{transition:none}#memories-gallery>.memory-print:not(:disabled):hover,.album-grid .memory-print:not(:disabled):hover{transform:rotate(var(--print-tilt, -1deg))}}
+
+/* Keep the full album scrollable without displaying its scrollbar. */
+.memories-album-dialog{scrollbar-width:none;-ms-overflow-style:none}
+.memories-album-dialog::-webkit-scrollbar{display:none;width:0;height:0}
+
+/* Pixel viewport fallback for mobile engines with partial svh/cqh support. */
+.js .scene.story-journey{height:calc(var(--story-height,100vh) * 3.4)}
+.js .story-stage{height:var(--story-height,100vh);position:-webkit-sticky;position:sticky}
+.journey-art{container-type:normal}
+@media(max-width:700px){.js .scene.story-journey{height:calc(var(--story-height,100vh) * 3.2)}}
+@media print{.js .scene.story-journey{height:auto}.js .story-stage{height:auto;position:relative}}

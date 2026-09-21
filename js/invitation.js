@@ -126,7 +126,27 @@ document.querySelectorAll('[data-calendar]').forEach(button => button.addEventLi
 const journey = document.querySelector('.story-journey');
 if (journey) {
   const stage = journey.querySelector('.story-stage');
-  const chapters = [...journey.querySelectorAll('[data-chapter]')];
+  const chapters = [...journey.querySelectorAll('.journey-copy [data-chapter]')];
+  const art = journey.querySelector('.journey-art');
+  const avatars = [...journey.querySelectorAll('.avatar')];
+  let viewportWidth = 0, viewportHeight = 0;
+  function sizeJourney() {
+    // Freeze height through mobile toolbar expansion; recalculate on rotation.
+    if (innerWidth !== viewportWidth || !viewportHeight) {
+      viewportWidth = innerWidth;
+      viewportHeight = innerHeight;
+      journey.style.setProperty('--story-height', `${viewportHeight}px`);
+    }
+    const phone = viewportWidth <= 700;
+    const short = viewportHeight <= 650;
+    const size = Math.max(60, Math.min(
+      viewportWidth * (short ? .40 : phone ? .57 : .44),
+      viewportHeight * (short ? .36 : phone ? .40 : .49),
+      phone ? Infinity : 440, art.clientHeight - (short ? 36 : phone ? 40 : 44)
+    ));
+    avatars.forEach(avatar => avatar.style.setProperty('--avatar-size', `${size}px`));
+    queueJourney();
+  }
   const steps = [...journey.querySelectorAll('[data-story-step]')];
   const clamp = value => Math.max(0, Math.min(1, value));
   const smooth = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
@@ -141,6 +161,17 @@ if (journey) {
     stage.style.setProperty('--together', approach.toFixed(4));
     stage.style.setProperty('--wedding', outfit.toFixed(4));
     stage.style.setProperty('--story-progress', progress.toFixed(4));
+    // Explicit pixel transforms avoid newer CSS arithmetic/container-unit dependencies.
+    const phone = innerWidth <= 700;
+    const far = phone ? innerWidth * .25 : Math.min(innerWidth * .27, 340);
+    const near = phone ? innerWidth * .10 : Math.min(innerWidth * .10, 86);
+    const distance = far + (near - far) * approach;
+    avatars.forEach((avatar, index) => {
+      const offset = index === 0 ? -distance : distance;
+      avatar.style.transform = `translate3d(calc(-50% + ${offset}px), -50%, 0)`;
+      avatar.querySelector('.avatar-casual').style.opacity = String(1 - outfit);
+      avatar.querySelector('.avatar-wedding').style.opacity = String(outfit);
+    });
     if (chapter !== currentChapter) {
       currentChapter = chapter;
       chapters.forEach((item, index) => {
@@ -155,10 +186,18 @@ if (journey) {
     if (!pending) { pending = true; requestAnimationFrame(updateJourney); }
   }
   window.addEventListener('scroll', queueJourney, { passive: true });
-  window.addEventListener('resize', queueJourney, { passive: true });
-  reduceMotion.addEventListener('change', queueJourney);
-  const resizeObserver = new ResizeObserver(queueJourney);
-  resizeObserver.observe(journey); resizeObserver.observe(stage);
+  document.addEventListener('scroll', queueJourney, { passive: true, capture: true });
+  window.addEventListener('resize', sizeJourney, { passive: true });
+  window.visualViewport?.addEventListener('scroll', queueJourney, { passive: true });
+  window.addEventListener('pageshow', sizeJourney);
+  if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', queueJourney);
+  else reduceMotion.addListener(queueJourney);
+  if ('ResizeObserver' in window) {
+    const resizeObserver = new ResizeObserver(sizeJourney);
+    resizeObserver.observe(art);
+  }
+  document.fonts?.ready.then(sizeJourney);
+  sizeJourney();
   steps.forEach(button => button.addEventListener('click', () => {
     stopAuto();
     const step = Number(button.dataset.storyStep);
@@ -331,10 +370,19 @@ async function loadMemories() {
   const albumGrid = document.querySelector('#memories-all-photos');
   const openAlbum = document.querySelector('#memories-open-album');
   const updateScrollLock = () => document.body.classList.toggle('memory-viewer-open', viewer.open || album.open);
+  // Native dialogs keep focus inside; only keyboard interaction needs a focus ring.
+  let viewerTrigger = null;
+  document.addEventListener('pointerdown', () => document.body.classList.add('memories-pointer-mode'), { capture: true, passive: true });
+  document.addEventListener('keydown', event => {
+    if (['Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', ' '].includes(event.key)) {
+      document.body.classList.remove('memories-pointer-mode');
+    }
+  }, true);
+
   openAlbum.addEventListener('click', () => { stopAuto(); album.showModal(); updateScrollLock(); });
   album.querySelector('.album-close').addEventListener('click', () => album.close());
-  album.addEventListener('click', event => { if (event.target === album) album.close(); });
-  album.addEventListener('close', updateScrollLock);
+  // album.addEventListener('click', event => { if (event.target === album) album.close(); });
+  album.addEventListener('close', () => { updateScrollLock(); openAlbum.focus({ preventScroll: true }); });
   // Show stationery-shaped placeholders immediately while the folder is fetched.
   gallery.replaceChildren(...Array.from({ length: 5 }, () => {
     const placeholder = document.createElement('div');
@@ -350,7 +398,7 @@ async function loadMemories() {
       selected = (index + photos.length) % photos.length;
       viewer.querySelector('img').src = photos[selected].src;
       viewer.querySelector('img').alt = photos[selected].alt;
-      viewer.querySelector('figcaption').textContent = `${photos[selected].caption} · ${selected + 1} / ${photos.length}`;
+      viewer.querySelector('figcaption').textContent = `${selected + 1} / ${photos.length}`;
     }
     gallery.replaceChildren();
     function createPhoto(photo, index, target) {
@@ -381,7 +429,7 @@ async function loadMemories() {
       img.addEventListener('error', () => finish(false), { once: true });
       img.src = photo.src;
       button.append(img, caption);
-      button.addEventListener('click', () => { show(index); stopAuto(); viewer.showModal(); document.body.classList.add('memory-viewer-open'); });
+      button.addEventListener('click', () => { viewerTrigger = button; show(index); stopAuto(); viewer.showModal(); document.body.classList.add('memory-viewer-open'); });
       target.append(button);
     }
     photos.forEach((photo, index) => {
@@ -401,7 +449,7 @@ async function loadMemories() {
       const card = gallery.querySelector('.memory-print');
       if (!card) return;
       const gap = parseFloat(getComputedStyle(gallery).columnGap) || 0;
-      gallery.scrollBy({ left: direction * (card.getBoundingClientRect().width + gap), behavior: reduceMotion.matches ? 'instant' : 'smooth' });
+      gallery.scrollBy({ left: direction * (card.offsetWidth + gap), behavior: reduceMotion.matches ? 'instant' : 'smooth' });
     }
     previous.addEventListener('click', () => moveCarousel(-1));
     next.addEventListener('click', () => moveCarousel(1));
@@ -414,7 +462,6 @@ async function loadMemories() {
     });
     new ResizeObserver(updateCarousel).observe(gallery);
     updateCarousel();
-    document.querySelector('#album-count').textContent = `${photos.length} ${photos.length === 1 ? 'memory' : 'memories'} to look back on`;
     openAlbum.hidden = photos.length === 0;
     viewer.querySelector('.memory-close').addEventListener('click', () => viewer.close());
     viewer.querySelector('.memory-previous').addEventListener('click', () => show(selected - 1));
@@ -422,8 +469,11 @@ async function loadMemories() {
     viewer.addEventListener('keydown', event => {
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); show(selected + (event.key === 'ArrowRight' ? 1 : -1)); }
     });
-    viewer.addEventListener('click', event => { if (event.target === viewer) viewer.close(); });
-    viewer.addEventListener('close', updateScrollLock);
+    // viewer.addEventListener('click', event => { if (event.target === viewer) viewer.close(); });
+    viewer.addEventListener('close', () => {
+      updateScrollLock();
+      if (viewerTrigger?.isConnected) viewerTrigger.focus({ preventScroll: true });
+    });
     status.hidden = photos.length > 0;
     status.textContent = photos.length ? '' : 'Our album is waiting for its first memories.';
   } catch (error) {
