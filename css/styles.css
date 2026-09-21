@@ -186,3 +186,13 @@ body.memory-viewer-open{overflow:hidden}
 .memories-carousel-controls button:disabled{opacity:.3;cursor:default}
 .memories-carousel-controls span{font-size:13px;letter-spacing:1px;color:var(--sage)}
 @media(max-width:700px){#memories-gallery{gap:18px}#memories-gallery>.memory-print{flex-basis:78%}}
+
+/* Keep the scrollable track clean and place controls beside the photos. */
+.memories-carousel{position:relative;max-width:1184px;margin:auto;padding-inline:52px}
+#memories-gallery{scrollbar-width:none;-ms-overflow-style:none}
+#memories-gallery::-webkit-scrollbar{display:none;width:0;height:0}
+.memories-carousel-controls{position:absolute;inset:0;display:block;margin:0;pointer-events:none;z-index:9}
+.memories-carousel-controls button{position:absolute;top:50%;transform:translateY(-50%);pointer-events:auto;background:var(--paper)}
+#memories-previous{left:0}
+#memories-next{right:0}
+@media(max-width:700px){.memories-carousel{padding-inline:32px}#memories-previous{left:-10px}#memories-next{right:-10px}}
